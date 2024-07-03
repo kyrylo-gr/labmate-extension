@@ -1,32 +1,52 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { OutlineViewProvider } from './outlineView';
+// import { OutlineViewProvider, OutlineItem } from './outlineView';
+import { PanelViewProvider } from './panelViewProvider';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+  const panelViewProvider = new PanelViewProvider(context.extensionUri);
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      PanelViewProvider.viewType,
+      panelViewProvider
+    )
+  );
 
-	console.log('Congratulations, your extension "labmate" is now active!');
-	
-	const outlineProvider = new OutlineViewProvider();
-	vscode.window.registerTreeDataProvider('labmate-outline', outlineProvider);
+  context.subscriptions.push(
+    vscode.commands.registerCommand('extension.refreshOutline', async () => {
+      console.log('Parsing notebook event');
+      const editor = vscode.window.activeNotebookEditor;
+      console.log('editor', editor);
+      if (editor) {
+        // editor?.revealRange(new vscode.NotebookRange(15, 15));
+        panelViewProvider.parseNotebook(editor);
+      }
+    })
+  );
 
-	const disposable = vscode.commands.registerCommand('labmate.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		console.log('Hello World from labmate111!');
-		vscode.window.showInformationMessage('Hello World from labmate222!');
-	});
-	context.subscriptions.push(disposable);
-	
-  
-	let disposable2 = vscode.commands.registerCommand('extension.refreshOutline', () => {
-	  outlineProvider.refresh();
-	});
+  vscode.window.onDidChangeActiveNotebookEditor((editor) => {
+    console.log('onDidChangeActiveNotebookEditor', editor);
 
-	context.subscriptions.push(disposable2);
+    if (editor) vscode.commands.executeCommand('extension.refreshOutline');
+  });
+
+  // Trigger the command to parse the notebook when a notebook is opened or saved
+  vscode.workspace.onDidOpenNotebookDocument((document) => {
+    console.log('onDidOpenTextDocument', document);
+    if (document) vscode.commands.executeCommand('extension.refreshOutline');
+  });
+
+  vscode.workspace.onDidSaveNotebookDocument((document) => {
+    console.log('onDidSaveTextDocument', document);
+    if (document) vscode.commands.executeCommand('extension.refreshOutline');
+  });
+
+  // Parse the notebook if one is already open
+  if (
+    vscode.window.activeTextEditor &&
+    vscode.window.activeTextEditor.document.fileName.endsWith('.ipynb')
+  ) {
+    vscode.commands.executeCommand('extension.parseNotebook');
+  }
 }
 
-// This method is called when your extension is deactivated
 export function deactivate() {}

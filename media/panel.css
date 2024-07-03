@@ -1,0 +1,27 @@
+body {
+  background-color: transparent;
+}
+#main ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  margin-left: 1em;
+}
+.tree-item,
+.code-item {
+  cursor: pointer;
+}
+.tree-item:hover,
+.code-item:hover {
+  text-decoration: underline;
+}
+
+.code-items {
+  margin-left: 1em;
+  display: flex;
+  opacity: 0.5;
+}
+.code-item {
+  padding-left: 0.5em;
+  padding-right: 0.5em;
+}

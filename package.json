@@ -15,24 +15,25 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "labmate-view",
+          "id": "labmateViewContainer",
           "title": "labmate",
           "icon": "resources/icon.png"
         }
       ]
     },
     "views": {
-      "labmate-view": [
+      "labmateViewContainer": [
         {
-          "id": "labmate-outline",
-          "name": "labmate"
+          "id": "labmateView",
+          "name": "labmate",
+          "type": "webview"
         }
       ]
     },
     "commands": [
       {
-        "command": "labmate.helloWorld",
-        "title": "labmate: Hello"
+        "command": "labmate.showOutline",
+        "title": "labmate: Reload"
       }
     ]
   },

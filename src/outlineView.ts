@@ -1,21 +1,17 @@
 import * as vscode from 'vscode';
 
-export class OutlineViewProvider implements vscode.TreeDataProvider<OutlineItem> {
-  private _onDidChangeTreeData: vscode.EventEmitter<OutlineItem | undefined | void> = new vscode.EventEmitter<OutlineItem | undefined | void>();
-  readonly onDidChangeTreeData: vscode.Event<OutlineItem | undefined | void> = this._onDidChangeTreeData.event;
+export class OutlineViewProvider
+  implements vscode.WebviewViewProvider
+{
+  private _onDidChangeTreeData: vscode.EventEmitter<
+    OutlineItem | undefined | void
+  > = new vscode.EventEmitter<OutlineItem | undefined | void>();
+  readonly onDidChangeTreeData: vscode.Event<OutlineItem | undefined | void> =
+    this._onDidChangeTreeData.event;
 
   private outline: OutlineItem[] = [];
 
-  constructor() {
-    // You can add your logic here to populate the outline
-    this.outline = [
-      new OutlineItem('Section 1', []),
-      new OutlineItem('Section 2', [
-        new OutlineItem('Subsection 2.1', []),
-        new OutlineItem('Subsection 2.2', [])
-      ])
-    ];
-  }
+  constructor() {}
 
   refresh(): void {
     this._onDidChangeTreeData.fire();
@@ -31,6 +27,70 @@ export class OutlineViewProvider implements vscode.TreeDataProvider<OutlineItem>
     }
     return Promise.resolve(element.children);
   }
+
+  parseNotebook(cells: vscode.NotebookCell[]): void {
+    // Clear the current outline
+
+    console.log('Parsing notebook', cells);
+    this.outline = [];
+
+    try {
+      cells.forEach((cell: vscode.NotebookCell) => {
+        
+        if (cell.kind === vscode.NotebookCellKind.Markup) {
+          const lines = cell.document.getText().split('\n');
+          lines.forEach((line: string) => {
+            console.log('line', line);
+            const match = line.match(/^(#+)\s+(.+)/);
+            if (match) {
+              const level = match[1].length;
+              const title = match[2];
+              this.addOutlineItem(1, title);
+            }
+          });
+        }
+        if (cell.kind === vscode.NotebookCellKind.Code) {
+          const code = cell.document.lineAt(0).text;
+          const match = code.match(
+            /^^aqm.acquisition_cell\([\"\']([^\"\']+)[\"\']\)/
+          );
+          if (match) {
+            const title = match[1];
+            this.addOutlineItem(1, title);
+          }
+        }
+
+        cell.outputs.forEach((output: vscode.NotebookCellOutput) => {
+            console.log('output', output);
+        });
+      });
+
+      this.refresh();
+    } catch (error) {
+      vscode.window.showErrorMessage('Failed to parse the notebook');
+      console.error(error);
+    }
+  }
+
+  addOutlineItem(level: number, title: string): void {
+    const newItem = new OutlineItem(title, []);
+
+    if (level === 1) {
+      this.outline.push(newItem);
+    } else {
+      let parent = this.outline[this.outline.length - 1];
+      for (let i = 1; i < level - 1; i++) {
+        if (parent.children.length > 0) {
+          parent = parent.children[parent.children.length - 1];
+        } else {
+          const tempItem = new OutlineItem('', []);
+          parent.children.push(tempItem);
+          parent = tempItem;
+        }
+      }
+      parent.children.push(newItem);
+    }
+  }
 }
 
 export class OutlineItem extends vscode.TreeItem {
@@ -40,7 +100,9 @@ export class OutlineItem extends vscode.TreeItem {
   ) {
     super(
       label,
-      children.length === 0 ? vscode.TreeItemCollapsibleState.None : vscode.TreeItemCollapsibleState.Collapsed
+      children.length === 0
+        ? vscode.TreeItemCollapsibleState.None
+        : vscode.TreeItemCollapsibleState.Collapsed
     );
   }
 }
